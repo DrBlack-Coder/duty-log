@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1216">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Duty Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blind:#0E1216;
+  --blind-2:#161C22;
+  --amber:#FFB020;
+  --ice:#62D2FF;
+  --paper:#EFECE4;
+  --paper-2:#F7F5F0;
+  --rule:#D4CFC3;
+  --ink:#1B1F24;
+  --ink-soft:#5C6169;
+  --warn:#B4442F;
+  --display:"Bebas Neue","Haettenschweiler","Arial Narrow",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  --sans:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.45;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px 96px}
+
+/* ---------- the blind: signature element ---------- */
+.blind{
+  position:relative;
+  background:var(--blind);
+  color:var(--amber);
+  margin:0 -16px 22px;
+  padding:20px 20px 18px;
+  overflow:hidden;
+}
+.blind::after{
+  content:"";position:absolute;inset:0;
+  background-image:radial-gradient(circle at center,rgba(0,0,0,.5) .9px,transparent 1.1px);
+  background-size:3px 3px;
+  pointer-events:none;
+}
+.blind-inner{position:relative;max-width:1048px;margin:0 auto}
+.blind-top{
+  display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:#8A7A55;
+}
+.blind-top strong{color:var(--amber);font-weight:500}
+.blind-figure{
+  display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:6px;
+}
+.blind-hours{
+  font-family:var(--display);
+  font-size:clamp(60px,17vw,104px);
+  line-height:.82;
+  letter-spacing:.01em;
+  text-shadow:0 0 18px rgba(255,176,32,.28);
+}
+.blind-hours span{font-size:.34em;letter-spacing:.12em;margin-left:.1em}
+.blind-split{
+  display:flex;gap:20px;padding-bottom:8px;
+  font-family:var(--mono);font-size:12px;letter-spacing:.06em;
+}
+.blind-split div{border-left:2px solid currentColor;padding-left:9px}
+.blind-split .k{display:block;font-size:9.5px;letter-spacing:.16em;opacity:.62}
+.band-week{color:var(--amber)}
+.band-end{color:var(--ice)}
+.blind-nav{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+.nav-btn{
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;color:var(--amber);border:1px solid rgba(255,176,32,.35);
+  padding:7px 11px;cursor:pointer;border-radius:2px;
+}
+.nav-btn:hover{background:rgba(255,176,32,.12)}
+.nav-btn.ghost{color:#8A7A55;border-color:rgba(255,255,255,.14)}
+.nav-btn.ghost:hover{color:var(--amber)}
+
+/* ---------- layout ---------- */
+.cols{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:26px;align-items:start}
+@media (max-width:860px){.cols{grid-template-columns:1fr;gap:20px}}
+
+.card{background:var(--paper-2);border:1px solid var(--rule);border-radius:3px;padding:18px}
+.card-head{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  margin:0 0 14px;padding-bottom:10px;border-bottom:1px solid var(--rule);
+}
+.card-head h2{
+  font-family:var(--display);font-size:26px;font-weight:400;letter-spacing:.03em;
+  margin:0;line-height:1;
+}
+.card-head em{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-style:normal}
+
+/* ---------- form ---------- */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f.full{grid-column:1/-1}
+label{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft)}
+input,textarea,select{
+  font-family:var(--mono);font-size:14px;color:var(--ink);
+  background:#fff;border:1px solid var(--rule);border-radius:2px;
+  padding:8px 9px;width:100%;
+}
+textarea{font-family:var(--sans);resize:vertical;min-height:58px}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink)}
+.derived{
+  font-family:var(--mono);font-size:14px;padding:8px 9px;border:1px dashed var(--rule);
+  border-radius:2px;background:transparent;color:var(--ink-soft);
+}
+.ot-head{
+  grid-column:1/-1;display:flex;align-items:center;gap:9px;margin-top:6px;
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);
+}
+.ot-head::after{content:"";flex:1;height:1px;background:var(--rule)}
+.ot-head input{width:auto;margin:0}
+.span-line{
+  grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  border-top:1px solid var(--rule);margin-top:8px;padding-top:10px;
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+}
+.span-line b{font-family:var(--display);font-size:30px;letter-spacing:.02em;color:var(--ink);font-weight:400;line-height:1}
+.actions{grid-column:1/-1;display:flex;gap:8px;margin-top:12px}
+.btn{
+  font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  padding:11px 16px;border-radius:2px;border:1px solid var(--ink);cursor:pointer;
+  background:var(--ink);color:var(--paper);flex:1;
+}
+.btn:hover{background:#000}
+.btn.sec{background:transparent;color:var(--ink);flex:0 0 auto}
+.btn.sec:hover{background:rgba(0,0,0,.05)}
+.msg{grid-column:1/-1;font-family:var(--mono);font-size:11.5px;color:var(--warn);min-height:1em}
+
+/* ---------- week list ---------- */
+.rows{display:flex;flex-direction:column;gap:1px;background:var(--rule)}
+.row{
+  display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:start;
+  background:var(--paper-2);padding:12px 14px;
+}
+.row.weekend{background:#F2F6F8}
+.tab{
+  font-family:var(--display);font-size:22px;line-height:1;text-align:center;
+  padding-top:2px;color:var(--amber);
+}
+.row.weekend .tab{color:#2E9BC9}
+.tab small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--ink-soft);margin-top:3px}
+.r-main{min-width:0}
+.r-title{font-family:var(--mono);font-size:14px;font-weight:600;letter-spacing:.02em}
+.r-title .depot{color:var(--ink-soft);font-weight:400}
+.r-times{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin-top:3px}
+.r-times .ot{color:var(--warn)}
+.r-desc{font-size:12.5px;color:var(--ink-soft);margin-top:4px;overflow-wrap:anywhere}
+.r-side{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.r-hrs{font-family:var(--display);font-size:26px;line-height:1;letter-spacing:.02em}
+.r-pay{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+.r-top{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;color:#9A6B12}
+.row.weekend .r-top{color:#1E6E93}
+.r-btns{display:flex;gap:4px;margin-top:2px}
+.mini{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--rule);color:var(--ink-soft);
+  padding:4px 7px;border-radius:2px;cursor:pointer;
+}
+.mini:hover{border-color:var(--ink);color:var(--ink)}
+.empty{
+  background:var(--paper-2);border:1px dashed var(--rule);border-radius:3px;
+  padding:34px 20px;text-align:center;color:var(--ink-soft);
+}
+.empty strong{display:block;font-family:var(--display);font-size:24px;font-weight:400;letter-spacing:.03em;color:var(--ink);margin-bottom:4px}
+.foot-totals{
+  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border-top:2px solid var(--ink);margin-top:12px;padding-top:10px;
+  font-family:var(--mono);font-size:12px;
+}
+.foot-totals b{font-weight:600}
+
+/* ---------- settings ---------- */
+.settings{margin-top:22px}
+.settings[hidden]{display:none}
+.rate-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 12px}
+@media (max-width:520px){.rate-grid{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr 1fr}}
+.hint{font-size:12px;color:var(--ink-soft);margin:10px 0 0}
+.note{font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;color:var(--ink-soft);margin-top:20px;text-align:center}
+/* ---------- import ---------- */
+.drop{
+  border:1px dashed var(--rule);border-radius:3px;background:#fff;
+  padding:22px 18px;text-align:center;transition:border-color .12s,background .12s;
+}
+.drop.over{border-color:var(--ink);background:#FBFAF7}
+.drop p{margin:0 0 12px;font-size:13px;color:var(--ink-soft)}
+.drop-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.paste{margin-top:12px}
+.paste textarea{font-family:var(--mono);font-size:12px;min-height:80px}
+.tally{
+  display:flex;gap:16px;flex-wrap:wrap;margin:14px 0 10px;
+  font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);
+}
+.tally b{font-family:var(--display);font-size:22px;letter-spacing:.02em;color:var(--ink);font-weight:400;display:block}
+.tally .bad b{color:var(--warn)}
+.dupe{
+  display:flex;gap:14px;flex-wrap:wrap;align-items:center;
+  background:#fff;border:1px solid var(--rule);border-radius:2px;padding:9px 11px;margin-bottom:10px;
+  font-size:12.5px;
+}
+.dupe label{font-family:var(--sans);font-size:12.5px;letter-spacing:0;text-transform:none;color:var(--ink);display:flex;align-items:center;gap:6px;cursor:pointer}
+.dupe input{width:auto}
+.prev{max-height:320px;overflow-y:auto;border:1px solid var(--rule);border-radius:2px;background:var(--rule);display:flex;flex-direction:column;gap:1px}
+.prev-row{display:grid;grid-template-columns:58px 1fr auto;gap:10px;align-items:center;background:#fff;padding:8px 10px}
+.prev-row.err{background:#FBF0EC}
+.prev-day{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase}
+.prev-main{font-family:var(--mono);font-size:12.5px;min-width:0;overflow-wrap:anywhere}
+.prev-main em{font-style:normal;color:var(--warn);font-size:11.5px}
+.prev-note{color:var(--ink-soft);font-size:11.5px}
+.pill{
+  font-family:var(--mono);font-size:9px;letter-spacing:.11em;text-transform:uppercase;
+  padding:3px 7px;border-radius:2px;border:1px solid var(--rule);color:var(--ink-soft);white-space:nowrap;
+}
+.pill.new{border-color:#2E7D5B;color:#2E7D5B}
+.pill.rep{border-color:#9A6B12;color:#9A6B12}
+.pill.skip{border-color:var(--rule);color:var(--ink-soft)}
+.pill.bad{border-color:var(--warn);color:var(--warn)}
+.more{background:#fff;padding:8px 10px;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);text-align:center}
+.ok{color:#2E7D5B}
+
+/* ---------- six-week outlook ---------- */
+.hz{display:flex;flex-direction:column;gap:1px;background:var(--rule)}
+.hz-row{
+  display:grid;grid-template-columns:118px 1fr 74px 62px;gap:10px;align-items:center;
+  background:var(--paper-2);border:0;width:100%;text-align:left;cursor:pointer;
+  padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink);
+}
+.hz-row:hover{background:#fff}
+.hz-row.now{background:var(--blind);color:var(--amber)}
+.hz-row.now:hover{background:#161C22}
+.hz-row.blank{color:var(--ink-soft)}
+.hz-bar{height:6px;background:var(--rule);border-radius:1px;overflow:hidden}
+.hz-row.now .hz-bar{background:rgba(255,255,255,.14)}
+.hz-fill{height:100%;background:var(--ink)}
+.hz-row.now .hz-fill{background:var(--amber)}
+.hz-num{text-align:right;font-variant-numeric:tabular-nums}
+.hz-cnt{color:var(--ink-soft);font-size:11px}
+.hz-row.now .hz-cnt{color:#8A7A55}
+@media (max-width:520px){.hz-row{grid-template-columns:100px 1fr 62px}.hz-cnt{display:none}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<header class="blind">
+  <div class="blind-inner">
+    <div class="blind-top">
+      <span>Week <strong id="weekLabel">—</strong></span>
+      <span id="dutyCount">0 duties</span>
+    </div>
+    <div class="blind-figure">
+      <div class="blind-hours" id="totalHours">0<span>HRS</span></div>
+      <div class="blind-split">
+        <div class="band-week"><span class="k">Mon–Fri</span><span id="wdHours">0.00</span></div>
+        <div class="band-end"><span class="k">Sat–Sun</span><span id="weHours">0.00</span></div>
+        <div class="band-week"><span class="k">Est. pay</span><span id="totalPay">£0.00</span></div>
+      </div>
+    </div>
+    <div class="blind-nav">
+      <button class="nav-btn" id="prevWeek">◀ Previous</button>
+      <button class="nav-btn" id="thisWeek">This week</button>
+      <button class="nav-btn" id="nextWeek">Next ▶</button>
+      <button class="nav-btn ghost" id="toggleSettings">Rates</button>
+      <button class="nav-btn ghost" id="logoutBtn">Log out</button>
+      <button class="nav-btn ghost" id="toggleImport">Import CSV</button>
+      <button class="nav-btn ghost" id="exportCsv">Export CSV</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="cols">
+
+    <!-- ENTRY -->
+    <section class="card">
+      <div class="card-head">
+        <h2 id="formTitle">Log a duty</h2>
+        <em id="formMode">New</em>
+      </div>
+      <div class="grid">
+        <div class="f"><label for="duty">Duty number</label><input id="duty" inputmode="numeric" placeholder="214"></div>
+        <div class="f"><label for="depot">Depot initials</label><input id="depot" maxlength="4" placeholder="TL" style="text-transform:uppercase"></div>
+        <div class="f"><label for="date">Date</label><input id="date" type="date"></div>
+        <div class="f"><label for="dow">Day of week</label><div class="derived" id="dow">—</div></div>
+        <div class="f"><label for="bus1">First bus</label><input id="bus1" placeholder="LT445"></div>
+        <div class="f"><label for="bus2">Second bus</label><input id="bus2" placeholder="LT918"></div>
+        <div class="f"><label for="start">Start time</label><input id="start" type="time"></div>
+        <div class="f"><label for="finish">Finish time</label><input id="finish" type="time"></div>
+
+        <div class="ot-head"><label for="otOn" style="letter-spacing:.15em">Overtime</label><input type="checkbox" id="otOn"></div>
+        <div class="f"><label for="otStart">OT start time</label><input id="otStart" type="time" disabled></div>
+        <div class="f"><label for="otFinish">OT finish time</label><input id="otFinish" type="time" disabled></div>
+
+        <div class="f full"><label for="desc">Description</label><textarea id="desc" placeholder="Route 176, covered second half from Elephant"></textarea></div>
+
+        <div class="span-line">
+          <span id="spanText">Shift span runs start → whichever ends later</span>
+          <b id="spanHours">0.00</b>
+        </div>
+        <p class="msg" id="msg"></p>
+        <div class="actions">
+          <button class="btn" id="save">Save duty</button>
+          <button class="btn sec" id="clear">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- WEEK -->
+    <section>
+      <div class="card" style="padding:14px 14px 16px">
+        <div class="card-head" style="margin-bottom:12px">
+          <h2>The week</h2>
+          <em>Saturday → Friday</em>
+        </div>
+        <div id="rows" class="rows"></div>
+        <div id="emptyState" class="empty" hidden>
+          <strong>No duties booked</strong>
+          Log your first duty of the week on the left.
+        </div>
+        <div class="foot-totals">
+          <span>Overtime <b id="otTotal">0.00</b></span>
+          <span>Booked <b id="spanTotal">0.00</b></span>
+          <span id="topWrap">Top-up <b id="topTotal">0.00</b></span>
+          <span>Paid <b id="paidTotal">0.00</b> hrs</span>
+          <span>Est. pay <b id="payTotal">£0.00</b></span>
+        </div>
+      </div>
+
+      <div class="card settings" style="padding:14px">
+        <div class="card-head" style="margin-bottom:12px">
+          <h2>Issued ahead</h2>
+          <em>Next six weeks</em>
+        </div>
+        <div class="hz" id="horizon"></div>
+        <p class="hint" id="hzHint" style="margin-top:10px"></p>
+      </div>
+
+      <div class="card settings" id="settingsCard" hidden>
+        <div class="card-head">
+          <h2>Rates</h2>
+          <em>Saved on this device</em>
+        </div>
+        <div class="rate-grid">
+          <div class="f"><label for="rateWd">Mon–Fri £ / hr</label><input id="rateWd" type="number" step="0.01" min="0"></div>
+          <div class="f"><label for="rateWe">Sat–Sun £ / hr</label><input id="rateWe" type="number" step="0.01" min="0"></div>
+          <div class="f"><label for="minHours">Minimum paid hrs</label><input id="minHours" type="number" step="0.25" min="0"></div>
+          <div class="f"><label for="otMult">OT multiplier</label><input id="otMult" type="number" step="0.05" min="1"></div>
+          <div class="f"><label for="defDepot">Default depot</label><input id="defDepot" maxlength="4" style="text-transform:uppercase"></div>
+        </div>
+        <p class="hint">Pay is worked out on the day's rate for the whole shift span. Overtime is always paid at exactly the hours worked, at that rate multiplied by the OT multiplier — leave it at 1 if overtime pays the same. If the ordinary (non-overtime) time on a day works out under the minimum, it's paid up to it; set the minimum to 0 to turn that off.</p>
+      </div>
+
+      <div class="card settings" id="importCard" hidden>
+        <div class="card-head">
+          <h2>Import a rota</h2>
+          <em>CSV</em>
+        </div>
+
+        <div class="drop" id="drop">
+          <p>Drop a CSV here, or choose a file. Column order doesn't matter — the headings are read.</p>
+          <div class="drop-btns">
+            <button class="btn sec" id="pickFile">Choose file</button>
+            <button class="btn sec" id="template">Download template</button>
+            <button class="btn sec" id="togglePaste">Paste instead</button>
+          </div>
+          <input type="file" id="fileInput" accept=".csv,.txt,text/csv" hidden>
+        </div>
+
+        <div class="paste f" id="pasteBox" hidden>
+          <label for="pasteText">Paste rows, headings included</label>
+          <textarea id="pasteText" placeholder="Duty number,Depot,Date,First bus,Second bus,Start,Finish,OT start,OT finish,Description"></textarea>
+          <div class="actions" style="margin-top:8px"><button class="btn sec" id="readPaste">Read rows</button></div>
+        </div>
+
+        <div id="previewWrap" hidden>
+          <div class="tally">
+            <span>New<b id="tNew">0</b></span>
+            <span id="tRepWrap">Already logged<b id="tRep">0</b></span>
+            <span class="bad">Can't read<b id="tBad">0</b></span>
+            <span>Hours<b id="tHrs">0.00</b></span>
+          </div>
+          <div class="dupe" id="dupeBox" hidden>
+            <span id="dupeText"></span>
+            <label><input type="radio" name="dupe" value="replace" checked> Replace with the new version</label>
+            <label><input type="radio" name="dupe" value="skip"> Keep what's already logged</label>
+          </div>
+          <div class="prev" id="preview"></div>
+          <p class="msg" id="impMsg" style="margin:10px 0 0"></p>
+          <div class="actions" style="margin-top:10px">
+            <button class="btn" id="commit">Import duties</button>
+            <button class="btn sec" id="cancelImport">Cancel</button>
+          </div>
+        </div>
+
+        <p class="hint" id="impHint">Headings understood: duty number, depot, date, day, first bus, second bus, start, finish, OT start, OT finish, description. Dates can be 2026-08-08, 08/08/2026 or 8 Aug 2026; times can be 04:30 or 0430.</p>
+      </div>
+    </section>
+  </div>
+
+  <p class="note" id="storeNote"></p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var state={settings:{rateWd:0,rateWe:0,otMult:1,minHours:5.5,defDepot:""},duties:[]};
+  var editingId=null, anchor=null;
+  var $=function(id){return document.getElementById(id);};
+
+  /* ---------- time + week helpers ---------- */
+  function toMin(t){ if(!t) return null; var p=t.split(":"); return (+p[0])*60+(+p[1]); }
+  function fmtHrs(m){ return (m/60).toFixed(2); }
+  function iso(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+  function parseISO(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+  function weekStart(d){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()-((x.getDay()+1)%7)); return x; }
+  function addDays(d,n){ var x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function isWeekend(dow){ return dow===0||dow===6; }
+  function pretty(d){ return d.toLocaleDateString("en-GB",{day:"numeric",month:"short"}); }
+
+  // Shift span: start -> later of finish / OT finish. Times past midnight roll to the next day.
+  function calc(d){
+    var s=toMin(d.start), f=toMin(d.finish);
+    if(s===null||f===null) return {span:0,ot:0};
+    var fAdj=f<s?f+1440:f;
+    var end=fAdj, ot=0;
+    var os=toMin(d.otStart), of=toMin(d.otFinish);
+    if(os!==null&&of!==null){
+      var osAdj=os<s?os+1440:os;
+      var ofAdj=of<osAdj%1440?of+1440:of;
+      if(ofAdj<osAdj) ofAdj+=1440;
+      ot=ofAdj-osAdj;
+      if(ofAdj>end) end=ofAdj;
+    }
+    return {span:Math.max(0,end-s),ot:Math.max(0,ot)};
+  }
+  function rateFor(dateStr){
+    return isWeekend(parseISO(dateStr).getDay()) ? (+state.settings.rateWe||0) : (+state.settings.rateWd||0);
+  }
+  function pay(d){
+    var c=calc(d), rate=rateFor(d.date), mult=+state.settings.otMult||1;
+    var basic=Math.max(0,c.span-c.ot);
+    return (basic/60)*rate+(c.ot/60)*rate*mult;
+  }
+  function minMins(){ return Math.round((parseFloat(state.settings.minHours)||0)*60); }
+
+  // A day that works out under the minimum is paid up to it — but the minimum only
+  // ever tops up ordinary time. Overtime always pays exactly what was worked, so it's
+  // tracked separately and never included in the top-up. Worked out per calendar day,
+  // so two short duties on one date are added together before the top-up applies.
+  function aggregate(list){
+    var byDay={}, min=minMins();
+    list.forEach(function(d){
+      var a=byDay[d.date]||(byDay[d.date]={ordinary:0,ot:0,ids:[]});
+      var c=calc(d); a.ordinary+=Math.max(0,c.span-c.ot); a.ot+=c.ot; a.ids.push(d.id);
+    });
+    Object.keys(byDay).forEach(function(k){
+      var a=byDay[k];
+      a.topup=a.ordinary>0?Math.max(0,min-a.ordinary):0;
+      a.booked=a.ordinary+a.ot;
+      a.paid=a.ordinary+a.topup+a.ot;
+      a.topPay=(a.topup/60)*rateFor(k);
+      a.lastId=a.ids[a.ids.length-1];
+    });
+    return byDay;
+  }
+  function money(n){ return "£"+(n||0).toFixed(2); }
+
+  /* ---------- storage: server API backed by Postgres ---------- */
+  var saving=false, saveQueued=false;
+
+  async function load(){
+    try{
+      var r=await fetch("/api/state",{credentials:"same-origin"});
+      if(r.status===401){ window.location.href="/login"; return; }
+      if(!r.ok) throw new Error("bad status "+r.status);
+      var p=await r.json();
+      if(p){ state.settings=Object.assign(state.settings,p.settings||{}); state.duties=p.duties||[]; }
+      $("storeNote").textContent="Duties are saved automatically to your account.";
+    }catch(e){
+      $("storeNote").innerHTML='<span style="color:var(--warn)">Couldn\u2019t reach the server \u2014 changes won\u2019t be saved until it\u2019s back. <a href="#" id="retryLoad">Retry</a></span>';
+      var a=$("retryLoad"); if(a) a.addEventListener("click",function(ev){ev.preventDefault();load().then(render);});
+    }
+  }
+
+  // Coalesce rapid edits into one request at a time; if a save comes in while
+  // one is in flight, run exactly one more afterwards rather than queuing many.
+  async function save(){
+    if(saving){ saveQueued=true; return; }
+    saving=true;
+    try{
+      var r=await fetch("/api/state",{
+        method:"PUT",
+        credentials:"same-origin",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(state)
+      });
+      if(r.status===401){ window.location.href="/login"; return; }
+      if(!r.ok) throw new Error("bad status "+r.status);
+      $("msg").textContent="";
+    }catch(e){
+      $("msg").textContent="Couldn't save to the server — check your connection and try again.";
+    }finally{
+      saving=false;
+      if(saveQueued){ saveQueued=false; await save(); }
+    }
+  }
+
+  /* ---------- form ---------- */
+  function setDow(){
+    var v=$("date").value;
+    if(!v){ $("dow").textContent="—"; return; }
+    var dow=parseISO(v).getDay();
+    $("dow").textContent=DAYS[dow]+(isWeekend(dow)?"  ·  weekend rate":"  ·  weekday rate");
+  }
+  function readForm(){
+    return {
+      id:editingId||("d"+Date.now()),
+      duty:$("duty").value.trim(),
+      depot:$("depot").value.trim().toUpperCase(),
+      date:$("date").value,
+      bus1:$("bus1").value.trim().toUpperCase(),
+      bus2:$("bus2").value.trim().toUpperCase(),
+      start:$("start").value,
+      finish:$("finish").value,
+      otStart:$("otOn").checked?$("otStart").value:"",
+      otFinish:$("otOn").checked?$("otFinish").value:"",
+      desc:$("desc").value.trim()
+    };
+  }
+  function refreshSpan(){
+    var d=readForm(), c=calc(d);
+    $("spanHours").textContent=fmtHrs(c.span);
+    if(!d.start||!d.finish){ $("spanText").textContent="Shift span runs start → whichever ends later"; return; }
+    var s=toMin(d.start), f=toMin(d.finish), of=toMin(d.otFinish);
+    var endLabel=(of!==null&&d.otStart&&((of<s?of+1440:of)>(f<s?f+1440:f)))?d.otFinish+" (OT)":d.finish;
+    var min=minMins(), ord=Math.max(0,c.span-c.ot);
+    $("spanText").textContent=d.start+" → "+endLabel+(c.ot?"  ·  "+fmtHrs(c.ot)+" hrs OT":"")+
+      ((min&&ord>0&&ord<min)?"  ·  under the "+fmtHrs(min)+" hr minimum":"");
+  }
+  function clearForm(keepDate){
+    var keep=keepDate?$("date").value:iso(new Date());
+    editingId=null;
+    ["duty","bus1","bus2","start","finish","otStart","otFinish","desc"].forEach(function(k){$(k).value="";});
+    $("depot").value=state.settings.defDepot||"";
+    $("date").value=keep;
+    $("otOn").checked=false; toggleOt();
+    $("formTitle").textContent="Log a duty"; $("formMode").textContent="New";
+    $("msg").textContent=""; setDow(); refreshSpan();
+  }
+  function toggleOt(){
+    var on=$("otOn").checked;
+    $("otStart").disabled=!on; $("otFinish").disabled=!on;
+    if(!on){ $("otStart").value=""; $("otFinish").value=""; }
+    refreshSpan();
+  }
+  function validate(d){
+    if(!d.date) return "Pick the date of the duty.";
+    if(!d.duty) return "Enter the duty number.";
+    if(!d.start||!d.finish) return "Both a start and a finish time are needed.";
+    if($("otOn").checked&&(!d.otStart||!d.otFinish)) return "Overtime needs both an OT start and an OT finish.";
+    return "";
+  }
+
+  /* ---------- week view ---------- */
+  function render(){
+    var ws=weekStart(anchor), we=addDays(ws,6);
+    $("weekLabel").textContent=pretty(ws)+" – "+pretty(we)+" "+we.getFullYear();
+
+    var list=state.duties.filter(function(d){
+      var dt=parseISO(d.date); return dt>=ws&&dt<=we;
+    }).sort(function(a,b){
+      return a.date===b.date ? toMin(a.start)-toMin(b.start) : (a.date<b.date?-1:1);
+    });
+
+    var agg=aggregate(list);
+    var wd=0,wk=0,ot=0,booked=0,topup=0,paid=0,money_=0;
+    Object.keys(agg).forEach(function(k){
+      var a=agg[k];
+      booked+=a.booked; ot+=a.ot; topup+=a.topup; paid+=a.paid; money_+=a.topPay;
+      if(isWeekend(parseISO(k).getDay())) wk+=a.paid; else wd+=a.paid;
+    });
+
+    var rows=$("rows"); rows.innerHTML="";
+    list.forEach(function(d){
+      var c=calc(d), dow=parseISO(d.date).getDay(), wknd=isWeekend(dow);
+      var a=agg[d.date], topped=a.topup>0&&a.lastId===d.id;
+      money_+=pay(d);
+
+      var row=document.createElement("div");
+      row.className="row"+(wknd?" weekend":"");
+      var busses=[d.bus1,d.bus2].filter(Boolean).join(" / ");
+      var otBit=c.ot?'<span class="ot"> + OT '+d.otStart+"–"+d.otFinish+" ("+fmtHrs(c.ot)+")</span>":"";
+      row.innerHTML=
+        '<div class="tab">'+DAYS[dow].slice(0,3).toUpperCase()+"<small>"+parseISO(d.date).getDate()+"</small></div>"+
+        '<div class="r-main">'+
+          '<div class="r-title">Duty '+esc(d.duty)+(d.depot?' <span class="depot">· '+esc(d.depot)+"</span>":"")+
+          (busses?' <span class="depot">· '+esc(busses)+"</span>":"")+"</div>"+
+          '<div class="r-times">'+d.start+" – "+d.finish+otBit+"</div>"+
+          (d.desc?'<div class="r-desc">'+esc(d.desc)+"</div>":"")+
+        "</div>"+
+        '<div class="r-side"><div class="r-hrs">'+fmtHrs(c.span)+'</div>'+
+          (topped?'<div class="r-top">paid as '+fmtHrs(a.paid)+"</div>":"")+
+          '<div class="r-pay">'+money(pay(d)+(topped?a.topPay:0))+'</div>'+
+          '<div class="r-btns"><button class="mini" data-edit="'+d.id+'">Edit</button>'+
+          '<button class="mini" data-del="'+d.id+'">Delete</button></div></div>';
+      rows.appendChild(row);
+    });
+
+    $("emptyState").hidden=list.length>0;
+    $("dutyCount").textContent=list.length+(list.length===1?" duty":" duties")+
+      (topup>0?"  ·  "+fmtHrs(booked)+" booked":"");
+    $("totalHours").innerHTML=fmtHrs(paid)+"<span>HRS</span>";
+    $("wdHours").textContent=fmtHrs(wd);
+    $("weHours").textContent=fmtHrs(wk);
+    $("totalPay").textContent=money(money_);
+    $("otTotal").textContent=fmtHrs(ot);
+    $("spanTotal").textContent=fmtHrs(booked);
+    $("topTotal").textContent=fmtHrs(topup);
+    $("topWrap").hidden=topup===0;
+    $("paidTotal").textContent=fmtHrs(paid);
+    $("payTotal").textContent=money(money_);
+    renderHorizon();
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
+
+  function edit(id){
+    var d=state.duties.find(function(x){return x.id===id;});
+    if(!d) return;
+    editingId=id;
+    $("duty").value=d.duty; $("depot").value=d.depot; $("date").value=d.date;
+    $("bus1").value=d.bus1; $("bus2").value=d.bus2;
+    $("start").value=d.start; $("finish").value=d.finish;
+    $("otOn").checked=!!(d.otStart&&d.otFinish); toggleOt();
+    $("otStart").value=d.otStart||""; $("otFinish").value=d.otFinish||"";
+    $("desc").value=d.desc||"";
+    $("formTitle").textContent="Duty "+d.duty; $("formMode").textContent="Editing";
+    setDow(); refreshSpan();
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+
+  function csv(){
+    var head=["Duty number","Depot","Day","Date","First bus","Second bus","Start","Finish","OT start","OT finish",
+              "Shift hours","OT hours","Day top-up hours","Day paid hours","Rate band","Est. pay","Description"];
+    var lines=[head.join(",")];
+    var agg=aggregate(state.duties);
+    state.duties.slice().sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:toMin(a.start)-toMin(b.start));}).forEach(function(d){
+      var c=calc(d), dow=parseISO(d.date).getDay(), a=agg[d.date], last=a.lastId===d.id;
+      lines.push([d.duty,d.depot,DAYS[dow],d.date,d.bus1,d.bus2,d.start,d.finish,d.otStart,d.otFinish,
+        fmtHrs(c.span),fmtHrs(c.ot),last?fmtHrs(a.topup):"",last?fmtHrs(a.paid):"",
+        isWeekend(dow)?"Weekend":"Weekday",(pay(d)+(last?a.topPay:0)).toFixed(2),d.desc]
+        .map(function(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(","));
+    });
+    var url=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"}));
+    var a=document.createElement("a"); a.href=url; a.download="duty-log.csv"; a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+
+  /* ---------- six-week outlook ---------- */
+  function renderHorizon(){
+    var box=$("horizon"); box.innerHTML="";
+    var thisWs=weekStart(new Date()), curWs=iso(weekStart(anchor)), issued=0, weeks=0;
+    var peak=1;
+    var data=[];
+    for(var w=0;w<7;w++){
+      var ws=addDays(thisWs,w*7), we=addDays(ws,6);
+      var list=state.duties.filter(function(d){var dt=parseISO(d.date);return dt>=ws&&dt<=we;});
+      var ag=aggregate(list);
+      var mins=Object.keys(ag).reduce(function(t,k){return t+ag[k].paid;},0);
+      if(mins>peak) peak=mins;
+      if(list.length){ issued+=list.length; weeks++; }
+      data.push({ws:ws,we:we,n:list.length,mins:mins});
+    }
+    data.forEach(function(r){
+      var b=document.createElement("button");
+      b.className="hz-row"+(iso(r.ws)===curWs?" now":"")+(r.n?"":" blank");
+      b.setAttribute("data-week",iso(r.ws));
+      b.innerHTML='<span>'+pretty(r.ws)+" – "+pretty(r.we)+"</span>"+
+        '<span class="hz-bar"><span class="hz-fill" style="width:'+Math.round(r.mins/peak*100)+'%"></span></span>'+
+        '<span class="hz-num">'+fmtHrs(r.mins)+" hrs</span>"+
+        '<span class="hz-num hz-cnt">'+(r.n||"—")+"</span>";
+      box.appendChild(b);
+    });
+    $("hzHint").textContent = issued
+      ? issued+" duties issued across "+weeks+(weeks===1?" week":" weeks")+". Tap a week to open it."
+      : "Nothing issued yet for the next six weeks. Import your rota to fill this in.";
+  }
+
+  /* ---------- CSV import ---------- */
+  var pending=null;
+  var HEADS={
+    duty:["duty","duty number","duty no","dutyno","work","work no","run","run no","turn"],
+    depot:["depot","depot initials","depot inits","depot code","garage","dep"],
+    date:["date","duty date","work date"],
+    day:["day","day of week","dow","weekday"],
+    bus1:["first bus","bus 1","bus1","bus","vehicle 1","first vehicle","first bus no"],
+    bus2:["second bus","bus 2","bus2","vehicle 2","second vehicle","second bus no"],
+    start:["start","start time","sign on","signon","book on","on","from"],
+    finish:["finish","finish time","sign off","signoff","book off","off","end","end time","to"],
+    otStart:["ot start","ot start time","overtime start","ot from"],
+    otFinish:["ot finish","ot finish time","overtime finish","ot end","ot to"],
+    desc:["description","desc","notes","note","comments","comment","remarks","route","detail","details"]
+  };
+  function norm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
+
+  function parseCsv(text){
+    text=String(text).replace(/^\uFEFF/,"");
+    var first=text.split(/\r?\n/)[0]||"";
+    var delim=",";
+    [";","\t","|"].forEach(function(d){
+      if(first.split(d).length>first.split(delim).length) delim=d;
+    });
+    var rows=[],row=[],cur="",q=false;
+    for(var i=0;i<text.length;i++){
+      var c=text[i];
+      if(q){
+        if(c==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; }
+        else cur+=c;
+      }else if(c==='"'){ q=true; }
+      else if(c===delim){ row.push(cur); cur=""; }
+      else if(c==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; }
+      else if(c!=="\r"){ cur+=c; }
+    }
+    row.push(cur); rows.push(row);
+    return rows.filter(function(r){ return r.some(function(v){return String(v).trim()!=="";}); });
+  }
+
+  function readTime(v){
+    var s=String(v||"").trim().toLowerCase().replace(/\s*(hrs?|hours?)\s*$/,"");
+    if(!s) return null;
+    var pm=/pm$/.test(s), am=/am$/.test(s);
+    s=s.replace(/\s*[ap]m$/,"").replace(/[.\s]/g,":").replace(/::+/g,":");
+    var h,m;
+    if(/^\d{1,2}:\d{1,2}$/.test(s)){ var p=s.split(":"); h=+p[0]; m=+p[1]; }
+    else if(/^\d{4}$/.test(s)){ h=+s.slice(0,2); m=+s.slice(2); }
+    else if(/^\d{3}$/.test(s)){ h=+s.slice(0,1); m=+s.slice(1); }
+    else if(/^\d{1,2}$/.test(s)){ h=+s; m=0; }
+    else return null;
+    if(pm&&h<12) h+=12;
+    if(am&&h===12) h=0;
+    if(h>23||m>59) return null;
+    return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+  }
+
+  var MONTHS=["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  function readDate(v,dayHint){
+    var s=String(v||"").trim();
+    if(!s) return null;
+    var hint=dayHint?DAYS.findIndex(function(d){return norm(d).slice(0,3)===norm(dayHint).slice(0,3);}):-1;
+    var cands=[],m;
+
+    if(m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/)) cands.push(new Date(+m[1],+m[2]-1,+m[3]));
+    else if(m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/)){
+      var yr=+m[3]; if(yr<100) yr+=2000;
+      cands.push(new Date(yr,+m[2]-1,+m[1]));                 // day first (UK)
+      if(+m[2]<=12&&+m[1]<=12) cands.push(new Date(yr,+m[1]-1,+m[2])); // month first
+    }
+    else if(m=s.match(/(\d{1,2})\s*([a-z]{3,})\.?\s*(\d{2,4})?/i)){
+      var mi=MONTHS.indexOf(m[2].slice(0,3).toLowerCase());
+      if(mi>-1){
+        var y=m[3]?(+m[3]<100?+m[3]+2000:+m[3]):new Date().getFullYear();
+        var d0=new Date(y,mi,+m[1]);
+        if(!m[3]&&d0<addDays(new Date(),-56)) d0=new Date(y+1,mi,+m[1]);
+        cands.push(d0);
+      }
+    }
+    else if(m=s.match(/^([a-z]{3,})\.?\s*(\d{1,2}),?\s*(\d{2,4})?/i)){
+      var mj=MONTHS.indexOf(m[1].slice(0,3).toLowerCase());
+      if(mj>-1) cands.push(new Date(m[3]?(+m[3]<100?+m[3]+2000:+m[3]):new Date().getFullYear(),mj,+m[2]));
+    }
+    else if(/^\d{5}$/.test(s)) cands.push(new Date(Date.UTC(1899,11,30+ +s))); // spreadsheet serial
+
+    cands=cands.filter(function(d){ return d&&!isNaN(d.getTime()); });
+    if(!cands.length) return null;
+    if(hint>-1){
+      var match=cands.find(function(d){return d.getDay()===hint;});
+      if(match) return {date:match,swapped:match!==cands[0]};
+    }
+    return {date:cands[0],swapped:false};
+  }
+
+  function ingest(text){
+    var rows=parseCsv(text);
+    if(rows.length<2){ showImpError("That file has no rows under the headings."); return; }
+    var head=rows[0].map(norm), col={};
+    Object.keys(HEADS).forEach(function(f){
+      HEADS[f].some(function(a){
+        var i=head.indexOf(norm(a));
+        if(i>-1){ col[f]=i; return true; }
+        return false;
+      });
+    });
+    if(col.date===undefined||col.duty===undefined||col.start===undefined||col.finish===undefined){
+      showImpError("Couldn't find the headings for duty number, date, start and finish. Check the first row, or start from the template.");
+      return;
+    }
+
+    var items=[];
+    for(var r=1;r<rows.length;r++){
+      var g=function(f){ return col[f]===undefined?"":String(rows[r][col[f]]||"").trim(); };
+      var raw={line:r+1,duty:g("duty"),depot:g("depot").toUpperCase(),bus1:g("bus1").toUpperCase(),
+               bus2:g("bus2").toUpperCase(),desc:g("desc")};
+      var parsed=readDate(g("date"),g("day"));
+      var st=readTime(g("start")), fi=readTime(g("finish"));
+      var os=readTime(g("otStart")), of=readTime(g("otFinish"));
+      var problems=[];
+      if(!parsed) problems.push("date not understood");
+      if(!raw.duty) problems.push("no duty number");
+      if(!st) problems.push("no start time");
+      if(!fi) problems.push("no finish time");
+      var notes=[];
+      if(parsed&&parsed.swapped) notes.push("read as month/day to match the day column");
+      if((os&&!of)||(of&&!os)){ notes.push("overtime needs both times — dropped"); os=null; of=null; }
+
+      items.push({
+        line:raw.line, bad:problems.length?problems.join(", "):"", note:notes.join(", "),
+        duty:{id:"", duty:raw.duty, depot:raw.depot, date:parsed?iso(parsed.date):"",
+              bus1:raw.bus1, bus2:raw.bus2, start:st||"", finish:fi||"",
+              otStart:os||"", otFinish:of||"", desc:raw.desc}
+      });
+    }
+
+    items.forEach(function(it){
+      if(it.bad) return;
+      var ex=state.duties.find(function(d){
+        return d.date===it.duty.date && norm(d.duty)===norm(it.duty.duty);
+      });
+      it.existingId=ex?ex.id:null;
+    });
+
+    pending=items;
+    renderPreview();
+  }
+
+  function showImpError(msg){
+    pending=null;
+    $("previewWrap").hidden=true;
+    $("impHint").innerHTML='<span style="color:var(--warn)">'+esc(msg)+"</span>";
+  }
+
+  function dupeMode(){
+    var el=document.querySelector('input[name="dupe"]:checked');
+    return el?el.value:"replace";
+  }
+
+  function renderPreview(){
+    if(!pending) return;
+    var mode=dupeMode();
+    var nNew=0,nRep=0,nBad=0,mins=0;
+    var box=$("preview"); box.innerHTML="";
+    pending.forEach(function(it,i){
+      var status,cls;
+      if(it.bad){ status="Can't read"; cls="bad"; nBad++; }
+      else if(it.existingId){ status=mode==="skip"?"Skipped":"Replaces"; cls=mode==="skip"?"skip":"rep"; nRep++; if(mode!=="skip") mins+=calc(it.duty).span; }
+      else { status="New"; cls="new"; nNew++; mins+=calc(it.duty).span; }
+      if(i>=60) return;
+
+      var row=document.createElement("div");
+      row.className="prev-row"+(it.bad?" err":"");
+      var dow=it.duty.date?parseISO(it.duty.date).getDay():null;
+      var c=calc(it.duty);
+      row.innerHTML=
+        '<span class="prev-day">'+(dow===null?"Row "+it.line:DAYS[dow].slice(0,3).toUpperCase()+" "+pretty(parseISO(it.duty.date)))+"</span>"+
+        '<span class="prev-main">'+(it.bad
+            ? "Row "+it.line+" — <em>"+esc(it.bad)+"</em>"
+            : "Duty "+esc(it.duty.duty)+(it.duty.depot?" · "+esc(it.duty.depot):"")+" · "+it.duty.start+"–"+it.duty.finish+
+              (c.ot?" +OT "+fmtHrs(c.ot):"")+" · "+fmtHrs(c.span)+" hrs"+
+              (it.note?'<br><span class="prev-note">'+esc(it.note)+"</span>":""))+"</span>"+
+        '<span class="pill '+cls+'">'+status+"</span>";
+      box.appendChild(row);
+    });
+    if(pending.length>60){
+      var more=document.createElement("div");
+      more.className="more"; more.textContent="+ "+(pending.length-60)+" more rows";
+      box.appendChild(more);
+    }
+
+    $("tNew").textContent=nNew;
+    $("tRep").textContent=nRep;
+    $("tBad").textContent=nBad;
+    $("tHrs").textContent=fmtHrs(mins);
+    $("tRepWrap").hidden=nRep===0;
+    $("dupeBox").hidden=nRep===0;
+    $("dupeText").textContent=nRep+(nRep===1?" duty is":" duties are")+" already logged for the same date and duty number.";
+    $("previewWrap").hidden=false;
+    $("commit").textContent=(nNew+(mode==="skip"?0:nRep))?"Import "+(nNew+(mode==="skip"?0:nRep))+" duties":"Nothing to import";
+    $("impMsg").textContent="";
+  }
+
+  async function commitImport(){
+    if(!pending) return;
+    var mode=dupeMode(), added=0, replaced=0, earliest=null;
+    pending.forEach(function(it){
+      if(it.bad) return;
+      if(it.existingId&&mode==="skip") return;
+      var d=it.duty;
+      if(it.existingId){
+        d.id=it.existingId;
+        state.duties[state.duties.findIndex(function(x){return x.id===it.existingId;})]=d;
+        replaced++;
+      }else{
+        d.id="d"+Date.now()+"-"+Math.random().toString(36).slice(2,7);
+        state.duties.push(d);
+        added++;
+      }
+      if(!earliest||d.date<earliest) earliest=d.date;
+    });
+    if(!added&&!replaced){ $("impMsg").textContent="No rows were imported."; return; }
+    await save();
+    if(earliest) anchor=parseISO(earliest);
+    pending=null;
+    $("previewWrap").hidden=true;
+    $("pasteText").value=""; $("fileInput").value="";
+    $("impHint").innerHTML='<span class="ok">Imported '+added+" new "+(added===1?"duty":"duties")+
+      (replaced?" and updated "+replaced:"")+". The week of the earliest duty is now showing.</span>";
+    render();
+  }
+
+  function templateCsv(){
+    var d=weekStart(addDays(new Date(),7));
+    var rows=[
+      "Duty number,Depot,Day,Date,First bus,Second bus,Start,Finish,OT start,OT finish,Description",
+      "214,TL,Saturday,"+iso(d)+",LT445,LT918,05:12,13:40,,,Route 176 early",
+      "308,TL,Monday,"+iso(addDays(d,2))+",LT602,,13:55,22:18,22:18,23:30,Late turn plus OT"
+    ];
+    var url=URL.createObjectURL(new Blob([rows.join("\n")],{type:"text/csv"}));
+    var a=document.createElement("a"); a.href=url; a.download="rota-template.csv"; a.click();
+    setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+
+  function readFile(file){
+    if(!file) return;
+    var fr=new FileReader();
+    fr.onload=function(){ ingest(fr.result); };
+    fr.onerror=function(){ showImpError("That file couldn't be read."); };
+    fr.readAsText(file);
+  }
+
+  /* ---------- wiring ---------- */
+  ["date"].forEach(function(k){$(k).addEventListener("change",function(){setDow();refreshSpan();});});
+  ["start","finish","otStart","otFinish"].forEach(function(k){$(k).addEventListener("input",refreshSpan);});
+  $("otOn").addEventListener("change",toggleOt);
+  $("clear").addEventListener("click",function(){clearForm(true);});
+
+  $("save").addEventListener("click",async function(){
+    var d=readForm(), err=validate(d);
+    $("msg").textContent=err;
+    if(err) return;
+    var i=state.duties.findIndex(function(x){return x.id===d.id;});
+    if(i>-1) state.duties[i]=d; else state.duties.push(d);
+    anchor=parseISO(d.date);
+    await save(); clearForm(true); render();
+  });
+
+  $("rows").addEventListener("click",async function(e){
+    var ed=e.target.getAttribute("data-edit"), dl=e.target.getAttribute("data-del");
+    if(ed) edit(ed);
+    if(dl){
+      state.duties=state.duties.filter(function(x){return x.id!==dl;});
+      if(editingId===dl) clearForm(true);
+      await save(); render();
+    }
+  });
+
+  $("prevWeek").addEventListener("click",function(){anchor=addDays(weekStart(anchor),-7);render();});
+  $("nextWeek").addEventListener("click",function(){anchor=addDays(weekStart(anchor),7);render();});
+  $("thisWeek").addEventListener("click",function(){anchor=new Date();render();});
+  $("exportCsv").addEventListener("click",csv);
+  $("toggleSettings").addEventListener("click",function(){
+    var c=$("settingsCard"); c.hidden=!c.hidden;
+    if(!c.hidden) c.scrollIntoView({behavior:"smooth",block:"nearest"});
+  });
+  $("logoutBtn").addEventListener("click",async function(){
+    try{ await fetch("/api/logout",{method:"POST",credentials:"same-origin"}); }
+    finally{ window.location.href="/login"; }
+  });
+
+  [["rateWd","rateWd"],["rateWe","rateWe"],["otMult","otMult"],["minHours","minHours"],["defDepot","defDepot"]].forEach(function(p){
+    $(p[0]).addEventListener("change",async function(){
+      var v=$(p[0]).value;
+      state.settings[p[1]]=p[1]==="defDepot"?v.trim().toUpperCase():(parseFloat(v)||0);
+      if(p[1]==="otMult"&&!state.settings.otMult) state.settings.otMult=1;
+      await save(); render();
+    });
+  });
+
+  $("toggleImport").addEventListener("click",function(){
+    var c=$("importCard"); c.hidden=!c.hidden;
+    if(!c.hidden) c.scrollIntoView({behavior:"smooth",block:"center"});
+  });
+  $("pickFile").addEventListener("click",function(){$("fileInput").click();});
+  $("fileInput").addEventListener("change",function(){readFile(this.files[0]);});
+  $("template").addEventListener("click",templateCsv);
+  $("togglePaste").addEventListener("click",function(){
+    var p=$("pasteBox"); p.hidden=!p.hidden;
+    if(!p.hidden) $("pasteText").focus();
+  });
+  $("readPaste").addEventListener("click",function(){
+    var t=$("pasteText").value.trim();
+    if(!t){ showImpError("Paste your rows first."); return; }
+    ingest(t);
+  });
+  $("commit").addEventListener("click",commitImport);
+  $("cancelImport").addEventListener("click",function(){
+    pending=null; $("previewWrap").hidden=true; $("fileInput").value="";
+    $("impHint").textContent="Import cancelled — nothing was changed.";
+  });
+  document.querySelectorAll('input[name="dupe"]').forEach(function(el){
+    el.addEventListener("change",renderPreview);
+  });
+
+  ["dragenter","dragover"].forEach(function(ev){
+    $("drop").addEventListener(ev,function(e){e.preventDefault();this.classList.add("over");});
+  });
+  ["dragleave","drop"].forEach(function(ev){
+    $("drop").addEventListener(ev,function(e){e.preventDefault();this.classList.remove("over");});
+  });
+  $("drop").addEventListener("drop",function(e){
+    if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+  });
+
+  $("horizon").addEventListener("click",function(e){
+    var b=e.target.closest("[data-week]");
+    if(b){ anchor=parseISO(b.getAttribute("data-week")); render(); }
+  });
+
+  (async function init(){
+    await load();
+    $("rateWd").value=state.settings.rateWd||"";
+    $("rateWe").value=state.settings.rateWe||"";
+    $("otMult").value=state.settings.otMult||1;
+    $("minHours").value=(state.settings.minHours==null?5.5:state.settings.minHours);
+    $("defDepot").value=state.settings.defDepot||"";
+    anchor=new Date();
+    clearForm(false);
+    render();
+  })();
+})();
+</script>
+</body>
+</html>

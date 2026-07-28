@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0E1216">
+<title>Duty Log — sign in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blind:#0E1216; --amber:#FFB020; --paper:#EFECE4; --paper-2:#F7F5F0;
+  --rule:#D4CFC3; --ink:#1B1F24; --ink-soft:#5C6169; --warn:#B4442F;
+  --display:"Bebas Neue",sans-serif; --mono:"IBM Plex Mono",monospace; --sans:"IBM Plex Sans",sans-serif;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:var(--blind);font-family:var(--sans);padding:20px;
+}
+.card{
+  width:100%;max-width:360px;background:var(--paper-2);border:1px solid var(--rule);
+  border-radius:3px;padding:28px 24px;
+}
+h1{
+  font-family:var(--display);font-size:38px;font-weight:400;letter-spacing:.03em;
+  margin:0 0 4px;color:var(--ink);line-height:1;
+}
+p.sub{margin:0 0 22px;color:var(--ink-soft);font-size:12.5px;font-family:var(--mono);letter-spacing:.04em}
+label{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);display:block;margin-bottom:5px}
+input{
+  font-family:var(--mono);font-size:15px;width:100%;padding:11px 10px;
+  border:1px solid var(--rule);border-radius:2px;background:#fff;color:var(--ink);
+}
+input:focus{outline:2px solid var(--ink);outline-offset:1px}
+button{
+  margin-top:14px;width:100%;padding:12px;border:1px solid var(--ink);border-radius:2px;
+  background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:12.5px;
+  letter-spacing:.1em;text-transform:uppercase;cursor:pointer;
+}
+button:hover{background:#000}
+button:disabled{opacity:.5;cursor:default}
+.err{
+  color:var(--warn);font-family:var(--mono);font-size:12px;margin-top:12px;min-height:1em;
+}
+</style>
+</head>
+<body>
+<form class="card" id="form" autocomplete="off">
+  <h1>Duty Log</h1>
+  <p class="sub">Sign in to see your duties</p>
+  <label for="pw">Password</label>
+  <input id="pw" type="password" autocomplete="current-password" autofocus>
+  <button id="btn" type="submit">Sign in</button>
+  <p class="err" id="err"></p>
+</form>
+<script>
+var form=document.getElementById("form"), pw=document.getElementById("pw"),
+    btn=document.getElementById("btn"), err=document.getElementById("err");
+form.addEventListener("submit", async function(e){
+  e.preventDefault();
+  err.textContent=""; btn.disabled=true; btn.textContent="Checking…";
+  try{
+    var r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({password:pw.value})});
+    var j=await r.json().catch(function(){return {};});
+    if(r.ok){ window.location.href="/"; return; }
+    err.textContent=j.error||"Couldn't sign in.";
+  }catch(e){ err.textContent="Couldn't reach the server."; }
+  btn.disabled=false; btn.textContent="Sign in"; pw.select();
+});
+</script>
+</body>
+</html>
