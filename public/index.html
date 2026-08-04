@@ -360,10 +360,11 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
           <div class="f"><label for="rateWd">Mon–Fri £ / hr</label><input id="rateWd" type="number" step="0.01" min="0"></div>
           <div class="f"><label for="rateWe">Sat–Sun £ / hr</label><input id="rateWe" type="number" step="0.01" min="0"></div>
           <div class="f"><label for="minHours">Minimum paid hrs</label><input id="minHours" type="number" step="0.25" min="0"></div>
+          <div class="f"><label for="rlMinHours">RL minimum hrs</label><input id="rlMinHours" type="number" step="0.05" min="0"></div>
           <div class="f"><label for="otMult">OT multiplier</label><input id="otMult" type="number" step="0.05" min="1"></div>
           <div class="f"><label for="defDepot">Default depot</label><input id="defDepot" maxlength="4" style="text-transform:uppercase"></div>
         </div>
-        <p class="hint">Pay is worked out on the day's rate for the whole shift span. Overtime is always paid at exactly the hours worked, at that rate multiplied by the OT multiplier — leave it at 1 if overtime pays the same. If the ordinary (non-overtime) time on a day works out under the minimum, it's paid up to it; set the minimum to 0 to turn that off.</p>
+        <p class="hint">Pay is worked out on the day's rate for the whole shift span. Overtime is always paid at exactly the hours worked, at that rate multiplied by the OT multiplier — leave it at 1 if overtime pays the same. If the ordinary (non-overtime) time on a day works out under the minimum, it's paid up to it; set the minimum to 0 to turn that off. A day with a duty numbered <strong>RL</strong> uses the RL minimum instead of the standard one.</p>
       </div>
 
       <div class="card settings" id="importCard" hidden>
@@ -420,7 +421,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 (function(){
   "use strict";
   var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  var state={settings:{rateWd:0,rateWe:0,otMult:1,minHours:5.5,defDepot:""},duties:[]};
+  var state={settings:{rateWd:0,rateWe:0,otMult:1,minHours:5.5,rlMinHours:7.6,defDepot:""},duties:[]};
   var editingId=null, anchor=null;
   var $=function(id){return document.getElementById(id);};
 
@@ -459,20 +460,26 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     return (basic/60)*rate+(c.ot/60)*rate*mult;
   }
   function minMins(){ return Math.round((parseFloat(state.settings.minHours)||0)*60); }
+  function rlMinMins(){ return Math.round((parseFloat(state.settings.rlMinHours)||0)*60); }
+  function isRL(duty){ return String(duty||"").trim().toUpperCase()==="RL"; }
 
   // A day that works out under the minimum is paid up to it — but the minimum only
   // ever tops up ordinary time. Overtime always pays exactly what was worked, so it's
   // tracked separately and never included in the top-up. Worked out per calendar day,
   // so two short duties on one date are added together before the top-up applies.
+  // A day with an RL duty gets its own, usually higher, minimum instead of the
+  // standard one — if more than one duty falls on that date, RL wins.
   function aggregate(list){
-    var byDay={}, min=minMins();
+    var byDay={}, min=minMins(), rlMin=rlMinMins();
     list.forEach(function(d){
-      var a=byDay[d.date]||(byDay[d.date]={ordinary:0,ot:0,ids:[]});
+      var a=byDay[d.date]||(byDay[d.date]={ordinary:0,ot:0,ids:[],rl:false});
       var c=calc(d); a.ordinary+=Math.max(0,c.span-c.ot); a.ot+=c.ot; a.ids.push(d.id);
+      if(isRL(d.duty)) a.rl=true;
     });
     Object.keys(byDay).forEach(function(k){
-      var a=byDay[k];
-      a.topup=a.ordinary>0?Math.max(0,min-a.ordinary):0;
+      var a=byDay[k], dayMin=a.rl?rlMin:min;
+      a.min=dayMin;
+      a.topup=a.ordinary>0?Math.max(0,dayMin-a.ordinary):0;
       a.booked=a.ordinary+a.ot;
       a.paid=a.ordinary+a.topup+a.ot;
       a.topPay=(a.topup/60)*rateFor(k);
@@ -550,9 +557,9 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     if(!d.start||!d.finish){ $("spanText").textContent="Shift span runs start → whichever ends later"; return; }
     var s=toMin(d.start), f=toMin(d.finish), of=toMin(d.otFinish);
     var endLabel=(of!==null&&d.otStart&&((of<s?of+1440:of)>(f<s?f+1440:f)))?d.otFinish+" (OT)":d.finish;
-    var min=minMins(), ord=Math.max(0,c.span-c.ot);
+    var min=isRL(d.duty)?rlMinMins():minMins(), ord=Math.max(0,c.span-c.ot);
     $("spanText").textContent=d.start+" → "+endLabel+(c.ot?"  ·  "+fmtHrs(c.ot)+" hrs OT":"")+
-      ((min&&ord>0&&ord<min)?"  ·  under the "+fmtHrs(min)+" hr minimum":"");
+      ((min&&ord>0&&ord<min)?"  ·  under the "+fmtHrs(min)+" hr minimum"+(isRL(d.duty)?" (RL)":""):"");
   }
   function clearForm(keepDate){
     var keep=keepDate?$("date").value:iso(new Date());
@@ -616,7 +623,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
           (d.desc?'<div class="r-desc">'+esc(d.desc)+"</div>":"")+
         "</div>"+
         '<div class="r-side"><div class="r-hrs">'+fmtHrs(c.span)+'</div>'+
-          (topped?'<div class="r-top">paid as '+fmtHrs(a.paid)+"</div>":"")+
+          (topped?'<div class="r-top">paid as '+fmtHrs(a.paid)+(a.rl?" (RL min)":"")+"</div>":"")+
           '<div class="r-pay">'+money(pay(d)+(topped?a.topPay:0))+'</div>'+
           '<div class="r-btns"><button class="mini" data-edit="'+d.id+'">Edit</button>'+
           '<button class="mini" data-del="'+d.id+'">Delete</button></div></div>';
@@ -991,7 +998,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     finally{ window.location.href="/login"; }
   });
 
-  [["rateWd","rateWd"],["rateWe","rateWe"],["otMult","otMult"],["minHours","minHours"],["defDepot","defDepot"]].forEach(function(p){
+  [["rateWd","rateWd"],["rateWe","rateWe"],["otMult","otMult"],["minHours","minHours"],["rlMinHours","rlMinHours"],["defDepot","defDepot"]].forEach(function(p){
     $(p[0]).addEventListener("change",async function(){
       var v=$(p[0]).value;
       state.settings[p[1]]=p[1]==="defDepot"?v.trim().toUpperCase():(parseFloat(v)||0);
@@ -1046,6 +1053,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("rateWe").value=state.settings.rateWe||"";
     $("otMult").value=state.settings.otMult||1;
     $("minHours").value=(state.settings.minHours==null?5.5:state.settings.minHours);
+    $("rlMinHours").value=(state.settings.rlMinHours==null?7.6:state.settings.rlMinHours);
     $("defDepot").value=state.settings.defDepot||"";
     anchor=new Date();
     clearForm(false);
