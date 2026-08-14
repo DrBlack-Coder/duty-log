@@ -377,11 +377,14 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
           <p>Drop a CSV here, or choose a file. Column order doesn't matter — the headings are read.</p>
           <div class="drop-btns">
             <button class="btn sec" id="pickFile">Choose file</button>
+            <button class="btn sec" id="scanPhoto">Scan a photo</button>
             <button class="btn sec" id="template">Download template</button>
             <button class="btn sec" id="togglePaste">Paste instead</button>
           </div>
           <input type="file" id="fileInput" accept=".csv,.txt,text/csv" hidden>
+          <input type="file" id="photoInput" accept="image/*" capture="environment" hidden>
         </div>
+        <p class="msg" id="scanMsg" style="margin:0 0 10px"></p>
 
         <div class="paste f" id="pasteBox" hidden>
           <label for="pasteText">Paste rows, headings included</label>
@@ -1013,6 +1016,37 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
   });
   $("pickFile").addEventListener("click",function(){$("fileInput").click();});
   $("fileInput").addEventListener("change",function(){readFile(this.files[0]);});
+
+  /* ---------- photo scan ---------- */
+  $("scanPhoto").addEventListener("click",function(){$("photoInput").click();});
+  $("photoInput").addEventListener("change",function(){
+    var file=this.files[0]; this.value="";
+    if(!file) return;
+    var msg=$("scanMsg");
+    msg.className="msg"; msg.textContent="Reading the photo…";
+    var fr=new FileReader();
+    fr.onload=function(){
+      var dataUrl=fr.result; // "data:image/png;base64,AAAA..."
+      var comma=dataUrl.indexOf(",");
+      var mediaType=dataUrl.slice(5,dataUrl.indexOf(";"));
+      var base64=dataUrl.slice(comma+1);
+      fetch("/api/extract-duty",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({imageBase64:base64,mediaType:mediaType})
+      }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,body:j}; }); })
+        .then(function(res){
+          if(!res.ok){ msg.className="msg bad"; msg.textContent=res.body.error||"Couldn't read that photo."; return; }
+          msg.className="msg ok"; msg.textContent="Read the photo — check the row below before importing.";
+          $("pasteBox").hidden=false;
+          $("pasteText").value=res.body.csv;
+          ingest(res.body.csv);
+        }).catch(function(){
+          msg.className="msg bad"; msg.textContent="Couldn't reach the server to read the photo.";
+        });
+    };
+    fr.readAsDataURL(file);
+  });
   $("template").addEventListener("click",templateCsv);
   $("togglePaste").addEventListener("click",function(){
     var p=$("pasteBox"); p.hidden=!p.hidden;
