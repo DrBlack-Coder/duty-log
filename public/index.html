@@ -253,6 +253,24 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 .hz-cnt{color:var(--ink-soft);font-size:11px}
 .hz-row.now .hz-cnt{color:#8A7A55}
 @media (max-width:520px){.hz-row{grid-template-columns:100px 1fr 62px}.hz-cnt{display:none}}
+
+/* ---------- monthly earnings dashboard ---------- */
+.mo{display:flex;flex-direction:column;gap:1px;background:var(--rule)}
+.mo-row{
+  display:grid;grid-template-columns:88px 1fr 68px 76px 58px;gap:10px;align-items:center;
+  background:var(--paper-2);border:0;width:100%;text-align:left;
+  padding:9px 12px;font-family:var(--mono);font-size:12px;color:var(--ink);
+}
+.mo-row.now{background:var(--blind);color:var(--amber)}
+.mo-bar{height:6px;background:var(--rule);border-radius:1px;overflow:hidden}
+.mo-row.now .mo-bar{background:rgba(255,255,255,.14)}
+.mo-fill{height:100%;background:var(--ink)}
+.mo-row.now .mo-fill{background:var(--amber)}
+.mo-num{text-align:right;font-variant-numeric:tabular-nums}
+.mo-pay{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.mo-cnt{color:var(--ink-soft);font-size:11px;text-align:right}
+.mo-row.now .mo-cnt{color:#8A7A55}
+@media (max-width:520px){.mo-row{grid-template-columns:70px 1fr 58px 70px}.mo-cnt{display:none}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -277,6 +295,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       <button class="nav-btn" id="thisWeek">This week</button>
       <button class="nav-btn" id="nextWeek">Next ▶</button>
       <button class="nav-btn ghost" id="toggleSettings">Rates</button>
+      <button class="nav-btn ghost" id="toggleDashboard">Dashboard</button>
       <button class="nav-btn ghost" id="logoutBtn">Log out</button>
       <button class="nav-btn ghost" id="toggleImport">Import CSV</button>
       <button class="nav-btn ghost" id="exportCsv">Export CSV</button>
@@ -349,6 +368,16 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         </div>
         <div class="hz" id="horizon"></div>
         <p class="hint" id="hzHint" style="margin-top:10px"></p>
+      </div>
+
+      <div class="card settings" id="dashboardCard" hidden>
+        <div class="card-head">
+          <h2>Monthly earnings</h2>
+          <em id="dashRange">—</em>
+        </div>
+        <div class="mo" id="monthList"></div>
+        <div class="foot-totals" id="dashTotals" style="margin-top:12px"></div>
+        <p class="hint" id="dashHint" style="margin-top:10px"></p>
       </div>
 
       <div class="card settings" id="settingsCard" hidden>
@@ -647,6 +676,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("paidTotal").textContent=fmtHrs(paid);
     $("payTotal").textContent=money(money_);
     renderHorizon();
+    renderDashboard();
   }
   function esc(s){ return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
 
@@ -710,6 +740,67 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("hzHint").textContent = issued
       ? issued+" duties issued across "+weeks+(weeks===1?" week":" weeks")+". Tap a week to open it."
       : "Nothing issued yet for the next six weeks. Import your rota to fill this in.";
+  }
+
+  /* ---------- monthly earnings dashboard ---------- */
+  function monthKey(dateStr){ return dateStr.slice(0,7); } // "YYYY-MM"
+  function monthLabel(key){
+    var p=key.split("-"); var d=new Date(+p[0],+p[1]-1,1);
+    return d.toLocaleDateString("en-GB",{month:"short",year:"numeric"});
+  }
+  // Same maths as the weekly total in render(): aggregate() handles the day-by-day
+  // minimum top-up, and pay(d) rates each duty at its day's weekday/weekend rate
+  // (with the OT multiplier applied to overtime). Works for any list of duties,
+  // so passing a calendar month's worth gives figures that agree with the weekly view.
+  function monthTotals(list){
+    var agg=aggregate(list);
+    var wd=0,wk=0,ot=0,topup=0,paid=0,money_=0;
+    Object.keys(agg).forEach(function(k){
+      var a=agg[k];
+      ot+=a.ot; topup+=a.topup; paid+=a.paid; money_+=a.topPay;
+      if(isWeekend(parseISO(k).getDay())) wk+=a.paid; else wd+=a.paid;
+    });
+    list.forEach(function(d){ money_+=pay(d); });
+    return {count:list.length,paid:paid,wd:wd,wk:wk,ot:ot,topup:topup,money:money_};
+  }
+  function renderDashboard(){
+    var box=$("monthList"); if(!box) return;
+    box.innerHTML="";
+    var byMonth={};
+    state.duties.forEach(function(d){
+      if(!d.date) return;
+      (byMonth[monthKey(d.date)]=byMonth[monthKey(d.date)]||[]).push(d);
+    });
+    var keys=Object.keys(byMonth).sort();
+    if(!keys.length){
+      $("dashRange").textContent="—";
+      $("dashTotals").innerHTML="";
+      $("dashHint").textContent="No duties logged yet — earnings will appear here once you log some.";
+      return;
+    }
+    var curKey=monthKey(iso(new Date()));
+    var rowsData=keys.map(function(k){ return {key:k,t:monthTotals(byMonth[k])}; });
+    var peak=1;
+    rowsData.forEach(function(r){ if(r.t.money>peak) peak=r.t.money; });
+    rowsData.slice().reverse().forEach(function(r){
+      var row=document.createElement("div");
+      row.className="mo-row"+(r.key===curKey?" now":"");
+      row.innerHTML='<span>'+monthLabel(r.key)+'</span>'+
+        '<span class="mo-bar"><span class="mo-fill" style="width:'+Math.round(r.t.money/peak*100)+'%"></span></span>'+
+        '<span class="mo-num">'+fmtHrs(r.t.paid)+' hrs</span>'+
+        '<span class="mo-pay">'+money(r.t.money)+'</span>'+
+        '<span class="mo-cnt">'+r.t.count+(r.t.count===1?" duty":" duties")+'</span>';
+      box.appendChild(row);
+    });
+    $("dashRange").textContent = keys.length>1 ? monthLabel(keys[0])+" – "+monthLabel(keys[keys.length-1]) : monthLabel(keys[0]);
+    var tWd=0,tWk=0,tPaid=0,tMoney=0;
+    rowsData.forEach(function(r){ tWd+=r.t.wd; tWk+=r.t.wk; tPaid+=r.t.paid; tMoney+=r.t.money; });
+    $("dashTotals").innerHTML=
+      '<span>Mon–Fri <b>'+fmtHrs(tWd)+'</b></span>'+
+      '<span>Sat–Sun <b>'+fmtHrs(tWk)+'</b></span>'+
+      '<span>Paid <b>'+fmtHrs(tPaid)+'</b> hrs</span>'+
+      '<span>Est. pay <b>'+money(tMoney)+'</b></span>';
+    $("dashHint").textContent=keys.length+" month"+(keys.length===1?"":"s")+" of duties logged. Figures use the rates set under \u201cRates\u201d, including day-minimum top-ups.";
   }
 
   /* ---------- CSV import ---------- */
@@ -995,6 +1086,10 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
   $("toggleSettings").addEventListener("click",function(){
     var c=$("settingsCard"); c.hidden=!c.hidden;
     if(!c.hidden) c.scrollIntoView({behavior:"smooth",block:"nearest"});
+  });
+  $("toggleDashboard").addEventListener("click",function(){
+    var c=$("dashboardCard"); c.hidden=!c.hidden;
+    if(!c.hidden){ renderDashboard(); c.scrollIntoView({behavior:"smooth",block:"nearest"}); }
   });
   $("logoutBtn").addEventListener("click",async function(){
     try{ await fetch("/api/logout",{method:"POST",credentials:"same-origin"}); }
