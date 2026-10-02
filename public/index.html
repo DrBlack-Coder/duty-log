@@ -321,6 +321,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         <div class="f"><label for="bus2">Second bus</label><input id="bus2" placeholder="LT918"></div>
         <div class="f"><label for="start">Start time</label><input id="start" type="time"></div>
         <div class="f"><label for="finish">Finish time</label><input id="finish" type="time"></div>
+        <div class="f full"><label for="regime">Domestic or EU</label><select id="regime"><option value="Domestic" selected>Domestic</option><option value="EU">EU</option></select></div>
 
         <div class="ot-head"><label for="otOn" style="letter-spacing:.15em">Overtime</label><input type="checkbox" id="otOn"></div>
         <div class="f"><label for="otStart">OT start time</label><input id="otStart" type="time" disabled></div>
@@ -580,7 +581,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       finish:$("finish").value,
       otStart:$("otOn").checked?$("otStart").value:"",
       otFinish:$("otOn").checked?$("otFinish").value:"",
-      desc:$("desc").value.trim()
+      desc:$("desc").value.trim(),
+      regime:$("regime").value==="EU"?"EU":"Domestic"
     };
   }
   function refreshSpan(){
@@ -598,6 +600,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     editingId=null;
     ["duty","bus1","bus2","start","finish","otStart","otFinish","desc"].forEach(function(k){$(k).value="";});
     $("depot").value=state.settings.defDepot||"";
+    $("regime").value="Domestic";
     $("date").value=keep;
     $("otOn").checked=false; toggleOt();
     $("formTitle").textContent="Log a duty"; $("formMode").textContent="New";
@@ -650,7 +653,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         '<div class="tab">'+DAYS[dow].slice(0,3).toUpperCase()+"<small>"+parseISO(d.date).getDate()+"</small></div>"+
         '<div class="r-main">'+
           '<div class="r-title">Duty '+esc(d.duty)+(d.depot?' <span class="depot">· '+esc(d.depot)+"</span>":"")+
-          (busses?' <span class="depot">· '+esc(busses)+"</span>":"")+"</div>"+
+          (busses?' <span class="depot">· '+esc(busses)+"</span>":"")+
+          (d.regime==="EU"?' <span class="depot">· EU</span>':"")+"</div>"+
           '<div class="r-times">'+d.start+" – "+d.finish+otBit+"</div>"+
           (d.desc?'<div class="r-desc">'+esc(d.desc)+"</div>":"")+
         "</div>"+
@@ -690,6 +694,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("otOn").checked=!!(d.otStart&&d.otFinish); toggleOt();
     $("otStart").value=d.otStart||""; $("otFinish").value=d.otFinish||"";
     $("desc").value=d.desc||"";
+    $("regime").value=d.regime==="EU"?"EU":"Domestic";
     $("formTitle").textContent="Duty "+d.duty; $("formMode").textContent="Editing";
     setDow(); refreshSpan();
     window.scrollTo({top:0,behavior:"smooth"});
@@ -697,14 +702,14 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 
   function csv(){
     var head=["Duty number","Depot","Day","Date","First bus","Second bus","Start","Finish","OT start","OT finish",
-              "Shift hours","OT hours","Day top-up hours","Day paid hours","Rate band","Est. pay","Description"];
+              "Shift hours","OT hours","Day top-up hours","Day paid hours","Rate band","Est. pay","Description","Domestic or EU"];
     var lines=[head.join(",")];
     var agg=aggregate(state.duties);
     state.duties.slice().sort(function(a,b){return a.date<b.date?-1:(a.date>b.date?1:toMin(a.start)-toMin(b.start));}).forEach(function(d){
       var c=calc(d), dow=parseISO(d.date).getDay(), a=agg[d.date], last=a.lastId===d.id;
       lines.push([d.duty,d.depot,DAYS[dow],d.date,d.bus1,d.bus2,d.start,d.finish,d.otStart,d.otFinish,
         fmtHrs(c.span),fmtHrs(c.ot),last?fmtHrs(a.topup):"",last?fmtHrs(a.paid):"",
-        isWeekend(dow)?"Weekend":"Weekday",(pay(d)+(last?a.topPay:0)).toFixed(2),d.desc]
+        isWeekend(dow)?"Weekend":"Weekday",(pay(d)+(last?a.topPay:0)).toFixed(2),d.desc,d.regime==="EU"?"EU":"Domestic"]
         .map(function(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(","));
     });
     var url=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"}));
@@ -816,6 +821,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     finish:["finish","finish time","sign off","signoff","book off","off","end","end time","to"],
     otStart:["ot start","ot start time","overtime start","ot from"],
     otFinish:["ot finish","ot finish time","overtime finish","ot end","ot to"],
+    regime:["domestic or eu","regime","domestic eu","eu or domestic"],
     desc:["description","desc","notes","note","comments","comment","remarks","route","detail","details"]
   };
   function norm(s){ return String(s||"").toLowerCase().replace(/[^a-z0-9]/g,""); }
@@ -916,7 +922,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     for(var r=1;r<rows.length;r++){
       var g=function(f){ return col[f]===undefined?"":String(rows[r][col[f]]||"").trim(); };
       var raw={line:r+1,duty:g("duty"),depot:g("depot").toUpperCase(),bus1:g("bus1").toUpperCase(),
-               bus2:g("bus2").toUpperCase(),desc:g("desc")};
+               bus2:g("bus2").toUpperCase(),desc:g("desc"),
+               regime:/^eu$/i.test(g("regime"))?"EU":"Domestic"};
       var parsed=readDate(g("date"),g("day"));
       var st=readTime(g("start")), fi=readTime(g("finish"));
       var os=readTime(g("otStart")), of=readTime(g("otFinish"));
@@ -933,7 +940,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         line:raw.line, bad:problems.length?problems.join(", "):"", note:notes.join(", "),
         duty:{id:"", duty:raw.duty, depot:raw.depot, date:parsed?iso(parsed.date):"",
               bus1:raw.bus1, bus2:raw.bus2, start:st||"", finish:fi||"",
-              otStart:os||"", otFinish:of||"", desc:raw.desc}
+              otStart:os||"", otFinish:of||"", desc:raw.desc, regime:raw.regime}
       });
     }
 
