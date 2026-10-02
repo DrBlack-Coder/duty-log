@@ -869,7 +869,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     };
   }
   function complianceFilename(ws){
-    return iso(ws).replace(/-/g,"")+"_Weekly Driving Record - WC Saturday "+dmy(ws,"-")+
+    return iso(new Date()).replace(/-/g,"")+"_Weekly Driving Record - WC Saturday "+dmy(ws,"-")+
            " to Friday "+dmy(addDays(ws,6),"-")+".pdf";
   }
   // Prints onto the flat (non-fillable) blank sheet. Coordinates are in PDF "top-down"
