@@ -299,6 +299,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       <button class="nav-btn ghost" id="logoutBtn">Log out</button>
       <button class="nav-btn ghost" id="toggleImport">Import CSV</button>
       <button class="nav-btn ghost" id="exportCsv">Export CSV</button>
+      <button class="nav-btn ghost" id="toggleCompliance">Print Compliance</button>
     </div>
   </div>
 </header>
@@ -321,7 +322,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         <div class="f"><label for="bus2">Second bus</label><input id="bus2" placeholder="LT918"></div>
         <div class="f"><label for="start">Start time</label><input id="start" type="time"></div>
         <div class="f"><label for="finish">Finish time</label><input id="finish" type="time"></div>
-        <div class="f full"><label for="regime">Domestic or EU</label><select id="regime"><option value="Domestic" selected>Domestic</option><option value="EU">EU</option></select></div>
+        <div class="f full"><label for="regime">Domestic, EU or OW</label><select id="regime"><option value="Domestic" selected>Domestic</option><option value="EU">EU</option><option value="OW">OW (other work)</option></select></div>
 
         <div class="ot-head"><label for="otOn" style="letter-spacing:.15em">Overtime</label><input type="checkbox" id="otOn"></div>
         <div class="f"><label for="otStart">OT start time</label><input id="otStart" type="time" disabled></div>
@@ -397,6 +398,21 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         <p class="hint">Pay is worked out on the day's rate for the whole shift span. Overtime is always paid at exactly the hours worked, at that rate multiplied by the OT multiplier — leave it at 1 if overtime pays the same. If the ordinary (non-overtime) time on a day works out under the minimum, it's paid up to it; set the minimum to 0 to turn that off. A day with a duty numbered <strong>RL</strong> uses the RL minimum instead of the standard one.</p>
       </div>
 
+      <div class="card settings" id="complianceCard" hidden>
+        <div class="card-head">
+          <h2>Print compliance</h2>
+          <em>PDF</em>
+        </div>
+        <div class="rate-grid">
+          <div class="f"><label for="cmpWeek">Week commencing (Saturday)</label><input id="cmpWeek" type="date"></div>
+          <div class="f"><label for="cmpRest">Rest days in last submission</label><input id="cmpRest" type="number" min="0" max="7" step="1"></div>
+        </div>
+        <p class="hint" id="cmpRange">Pick any date and it snaps to that week's Saturday.</p>
+        <div class="actions" style="margin-top:8px"><button class="btn" id="cmpDownload">Download PDF</button></div>
+        <p class="msg" id="cmpMsg"></p>
+        <p class="hint">Fills in the weekly compliance sheet from the duties logged for that week (Saturday to Friday). Days with no duty print as RRR. Sign and date are filled with your name and today's date.</p>
+      </div>
+
       <div class="card settings" id="importCard" hidden>
         <div class="card-head">
           <h2>Import a rota</h2>
@@ -450,6 +466,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
   <p class="note" id="storeNote"></p>
 </div>
 
+<script src="/vendor/pdf-lib.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -582,7 +599,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       otStart:$("otOn").checked?$("otStart").value:"",
       otFinish:$("otOn").checked?$("otFinish").value:"",
       desc:$("desc").value.trim(),
-      regime:$("regime").value==="EU"?"EU":"Domestic"
+      regime:["EU","OW"].indexOf($("regime").value)>-1?$("regime").value:"Domestic"
     };
   }
   function refreshSpan(){
@@ -654,7 +671,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         '<div class="r-main">'+
           '<div class="r-title">Duty '+esc(d.duty)+(d.depot?' <span class="depot">· '+esc(d.depot)+"</span>":"")+
           (busses?' <span class="depot">· '+esc(busses)+"</span>":"")+
-          (d.regime==="EU"?' <span class="depot">· EU</span>':"")+"</div>"+
+          (d.regime==="EU"||d.regime==="OW"?' <span class="depot">· '+d.regime+"</span>":"")+"</div>"+
           '<div class="r-times">'+d.start+" – "+d.finish+otBit+"</div>"+
           (d.desc?'<div class="r-desc">'+esc(d.desc)+"</div>":"")+
         "</div>"+
@@ -694,7 +711,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("otOn").checked=!!(d.otStart&&d.otFinish); toggleOt();
     $("otStart").value=d.otStart||""; $("otFinish").value=d.otFinish||"";
     $("desc").value=d.desc||"";
-    $("regime").value=d.regime==="EU"?"EU":"Domestic";
+    $("regime").value=["EU","OW"].indexOf(d.regime)>-1?d.regime:"Domestic";
     $("formTitle").textContent="Duty "+d.duty; $("formMode").textContent="Editing";
     setDow(); refreshSpan();
     window.scrollTo({top:0,behavior:"smooth"});
@@ -709,7 +726,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       var c=calc(d), dow=parseISO(d.date).getDay(), a=agg[d.date], last=a.lastId===d.id;
       lines.push([d.duty,d.depot,DAYS[dow],d.date,d.bus1,d.bus2,d.start,d.finish,d.otStart,d.otFinish,
         fmtHrs(c.span),fmtHrs(c.ot),last?fmtHrs(a.topup):"",last?fmtHrs(a.paid):"",
-        isWeekend(dow)?"Weekend":"Weekday",(pay(d)+(last?a.topPay:0)).toFixed(2),d.desc,d.regime==="EU"?"EU":"Domestic"]
+        isWeekend(dow)?"Weekend":"Weekday",(pay(d)+(last?a.topPay:0)).toFixed(2),d.desc,["EU","OW"].indexOf(d.regime)>-1?d.regime:"Domestic"]
         .map(function(v){return '"'+String(v==null?"":v).replace(/"/g,'""')+'"';}).join(","));
     });
     var url=URL.createObjectURL(new Blob([lines.join("\n")],{type:"text/csv"}));
@@ -807,6 +824,138 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       '<span>Est. pay <b>'+money(tMoney)+'</b></span>';
     $("dashHint").textContent=keys.length+" month"+(keys.length===1?"":"s")+" of duties logged. Figures use the rates set under \u201cRates\u201d, including day-minimum top-ups.";
   }
+
+  /* ---------- compliance sheet (PDF) ---------- */
+  // >>> COMPLIANCE-BLOCK-START
+  var DRIVER={name:"Leon Black",empNo:"3470702"};
+  function pad2(n){ return String(n).padStart(2,"0"); }
+  function dmy(d,sep){ return pad2(d.getDate())+sep+pad2(d.getMonth()+1)+sep+d.getFullYear(); }
+  function fmtHM(m){ m=Math.max(0,Math.round(m)); return Math.floor(m/60)+":"+pad2(m%60); }
+  function clockOf(m){ m=((m%1440)+1440)%1440; return pad2(Math.floor(m/60))+":"+pad2(m%60); }
+  function uniq(a){ return a.filter(function(v,i){ return v&&a.indexOf(v)===i; }); }
+  function regimeCode(r){ return r==="EU"?"EU":(r==="OW"?"OW":"DOM"); }
+  // Most recent Saturday–Friday week that has fully finished.
+  function defaultComplianceWeek(){ return addDays(weekStart(new Date()),-7); }
+  function restDaysInWeek(ws){
+    var n=0;
+    for(var i=0;i<7;i++){
+      var ds=iso(addDays(ws,i));
+      if(!state.duties.some(function(d){return d.date===ds;})) n++;
+    }
+    return n;
+  }
+  // One row of the compliance sheet for a calendar date.
+  function complianceDay(ds){
+    var list=state.duties.filter(function(d){return d.date===ds;})
+      .sort(function(a,b){return toMin(a.start)-toMin(b.start);});
+    if(!list.length) return {duty:"RRR",reg:"",fleet:"",depot:"",on:"",off:"",time:"",note:""};
+    var first=Infinity,last=-Infinity,total=0;
+    list.forEach(function(d){
+      var s=toMin(d.start), sp=calc(d).span;
+      if(s===null) return;
+      if(s<first) first=s;
+      if(s+sp>last) last=s+sp;
+      total+=sp;
+    });
+    return {
+      duty:uniq(list.map(function(d){return String(d.duty||"").trim();})).join(" / "),
+      reg:uniq(list.map(function(d){return regimeCode(d.regime);})).join(" / "),
+      fleet:uniq([].concat.apply([],list.map(function(d){return [d.bus1,d.bus2];}))).join(" / "),
+      depot:uniq(list.map(function(d){return d.depot;})).join(" / "),
+      on:first===Infinity?"":clockOf(first),
+      off:last===-Infinity?"":clockOf(last),
+      time:fmtHM(total),
+      note:uniq(list.map(function(d){return String(d.desc||"").trim();})).join("; ")
+    };
+  }
+  function complianceFilename(ws){
+    return iso(ws).replace(/-/g,"")+"_Weekly Driving Record - WC Saturday "+dmy(ws,"-")+
+           " to Friday "+dmy(addDays(ws,6),"-")+".pdf";
+  }
+  // Prints onto the flat (non-fillable) blank sheet. Coordinates are in PDF "top-down"
+  // points measured from the blank's cell borders, converted to pdf-lib's bottom-up system.
+  async function buildCompliancePdf(ws,restDays){
+    var L=window.PDFLib;
+    var res=await fetch("/compliance-blank.pdf",{credentials:"same-origin"});
+    if(!res.ok) throw new Error("Couldn't load the blank compliance sheet");
+    var pdf=await L.PDFDocument.load(await res.arrayBuffer());
+    var page=pdf.getPage(0), H=page.getHeight();
+    var font=await pdf.embedFont(L.StandardFonts.Helvetica);
+    var ital=await pdf.embedFont(L.StandardFonts.HelveticaOblique);
+    var ink=L.rgb(0.05,0.05,0.35);
+    function safe(s){ return String(s==null?"":s).replace(/[^\x20-\x7E\u00A0-\u00FF\u2013\u2014\u2018\u2019\u201C\u201D]/g,"?"); }
+    function shrink(f,t,w,max,min){ var s=max; while(s>min&&f.widthOfTextAtSize(t,s)>w) s-=0.25; return s; }
+    function put(t,f,size,x,topY,botY){
+      page.drawText(t,{x:x,y:H-((topY+botY)/2)-size*0.35,size:size,font:f,color:ink});
+    }
+    function centred(text,x0,x1,top,bot,max){
+      var t=safe(text); if(!t) return;
+      var w=x1-x0-4, s=shrink(font,t,w,max||10,5.5);
+      put(t,font,s,x0+(x1-x0-font.widthOfTextAtSize(t,s))/2,top,bot);
+    }
+    function wrap(t,size,w){
+      var words=t.split(/\s+/).filter(Boolean), lines=[], cur="";
+      words.forEach(function(wd){
+        while(font.widthOfTextAtSize(wd,size)>w){            // break an over-long word
+          var k=wd.length; while(k>1&&font.widthOfTextAtSize(wd.slice(0,k),size)>w) k--;
+          if(cur){ lines.push(cur); cur=""; }
+          lines.push(wd.slice(0,k)); wd=wd.slice(k);
+        }
+        var tryLine=cur?cur+" "+wd:wd;
+        if(font.widthOfTextAtSize(tryLine,size)<=w) cur=tryLine; else { lines.push(cur); cur=wd; }
+      });
+      if(cur) lines.push(cur);
+      return lines;
+    }
+    function comment(text,x0,x1,top,bot){
+      var t=safe(text).trim(); if(!t) return;
+      var w=x1-x0-8, avail=bot-top-3, size, lines;
+      for(size=9;size>=6;size-=0.5){
+        lines=wrap(t,size,w);
+        if(lines.length*size*1.15<=avail) break;
+      }
+      if(lines.length*size*1.15>avail){                      // still too long: truncate at 6pt
+        size=6; var max=Math.max(1,Math.floor(avail/(size*1.15)));
+        lines=wrap(t,size,w).slice(0,max);
+        var last=lines[lines.length-1];
+        while(last.length>1&&font.widthOfTextAtSize(last+"...",size)>w) last=last.slice(0,-1);
+        lines[lines.length-1]=last+"...";
+      }
+      var block=lines.length*size*1.15, y0=(top+bot)/2-block/2;
+      lines.forEach(function(ln,i){
+        page.drawText(ln,{x:x0+4,y:H-(y0+size*1.15*i+size*0.95),size:size,font:font,color:ink});
+      });
+    }
+
+    // header
+    put(dmy(ws,"/"),font,10.5,177,119.4,137.7);
+    put(DRIVER.name,font,10.5,354,119.4,137.7);
+    put(DRIVER.empNo,font,10.5,632,119.4,137.7);
+
+    // Sat → Fri rows. [left,right] edges of each column, and top/bottom of each row.
+    var COL={duty:[129.3,207.7],reg:[208.5,249.4],fleet:[250.1,306.1],depot:[306.8,347.7],
+             on:[348.4,389.3],off:[390.1,442.5],time:[443.2,496.9],note:[497.6,716.5]};
+    var ROW=[[177.0,202.4],[203.1,228.4],[229.1,255.1],[255.8,281.7],[282.4,307.2],[308.0,333.3],[334.0,359.4]];
+    for(var i=0;i<7;i++){
+      var r=complianceDay(iso(addDays(ws,i))), t=ROW[i][0], b=ROW[i][1];
+      centred(r.duty,COL.duty[0],COL.duty[1],t,b,10);
+      centred(r.reg,COL.reg[0],COL.reg[1],t,b,9);
+      centred(r.fleet,COL.fleet[0],COL.fleet[1],t,b,9);
+      centred(r.depot,COL.depot[0],COL.depot[1],t,b,9);
+      centred(r.on,COL.on[0],COL.on[1],t,b,10);
+      centred(r.off,COL.off[0],COL.off[1],t,b,10);
+      centred(r.time,COL.time[0],COL.time[1],t,b,10);
+      comment(r.note,COL.note[0],COL.note[1],t,b);
+    }
+
+    // footer
+    centred(String(restDays),250.5,305.7,373.8,388.5,10);
+    put(DRIVER.name,ital,17,138,441.6,467.3);
+    put(dmy(new Date(),"/"),font,11,546,441.6,467.3);
+
+    return await pdf.save();
+  }
+  // <<< COMPLIANCE-BLOCK-END
 
   /* ---------- CSV import ---------- */
   var pending=null;
@@ -923,7 +1072,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       var g=function(f){ return col[f]===undefined?"":String(rows[r][col[f]]||"").trim(); };
       var raw={line:r+1,duty:g("duty"),depot:g("depot").toUpperCase(),bus1:g("bus1").toUpperCase(),
                bus2:g("bus2").toUpperCase(),desc:g("desc"),
-               regime:/^eu$/i.test(g("regime"))?"EU":"Domestic"};
+               regime:/^eu$/i.test(g("regime"))?"EU":(/^ow$/i.test(g("regime"))?"OW":"Domestic")};
       var parsed=readDate(g("date"),g("day"));
       var st=readTime(g("start")), fi=readTime(g("finish"));
       var os=readTime(g("otStart")), of=readTime(g("otFinish"));
@@ -1090,6 +1239,42 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
   $("nextWeek").addEventListener("click",function(){anchor=addDays(weekStart(anchor),7);render();});
   $("thisWeek").addEventListener("click",function(){anchor=new Date();render();});
   $("exportCsv").addEventListener("click",csv);
+
+  function syncCompliance(){
+    var v=$("cmpWeek").value;
+    if(!v){ $("cmpRange").textContent="Pick a date."; return null; }
+    var ws=weekStart(parseISO(v));
+    $("cmpWeek").value=iso(ws);
+    $("cmpRange").textContent="Saturday "+dmy(ws,"/")+" to Friday "+dmy(addDays(ws,6),"/");
+    $("cmpRest").value=restDaysInWeek(addDays(ws,-7));
+    return ws;
+  }
+  $("toggleCompliance").addEventListener("click",function(){
+    var c=$("complianceCard"); c.hidden=!c.hidden;
+    if(!c.hidden){
+      if(!$("cmpWeek").value) $("cmpWeek").value=iso(defaultComplianceWeek());
+      syncCompliance(); $("cmpMsg").textContent="";
+      c.scrollIntoView({behavior:"smooth",block:"nearest"});
+    }
+  });
+  $("cmpWeek").addEventListener("change",syncCompliance);
+  $("cmpDownload").addEventListener("click",async function(){
+    var ws=syncCompliance();
+    if(!ws){ $("cmpMsg").textContent="Pick the week first."; return; }
+    var rest=parseInt($("cmpRest").value,10); if(isNaN(rest)||rest<0) rest=0;
+    $("cmpMsg").textContent="Creating PDF…";
+    try{
+      if(!window.PDFLib) throw new Error("The PDF library didn't load — refresh and try again");
+      var bytes=await buildCompliancePdf(ws,rest);
+      var url=URL.createObjectURL(new Blob([bytes],{type:"application/pdf"}));
+      var a=document.createElement("a"); a.href=url; a.download=complianceFilename(ws); a.click();
+      setTimeout(function(){URL.revokeObjectURL(url);},4000);
+      $("cmpMsg").textContent="Downloaded "+complianceFilename(ws);
+    }catch(err){
+      console.error(err);
+      $("cmpMsg").textContent="Couldn't create the PDF: "+(err&&err.message?err.message:err);
+    }
+  });
   $("toggleSettings").addEventListener("click",function(){
     var c=$("settingsCard"); c.hidden=!c.hidden;
     if(!c.hidden) c.scrollIntoView({behavior:"smooth",block:"nearest"});
