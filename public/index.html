@@ -833,6 +833,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
   function fmtHM(m){ m=Math.max(0,Math.round(m)); return Math.floor(m/60)+":"+pad2(m%60); }
   function clockOf(m){ m=((m%1440)+1440)%1440; return pad2(Math.floor(m/60))+":"+pad2(m%60); }
   function uniq(a){ return a.filter(function(v,i){ return v&&a.indexOf(v)===i; }); }
+  // Compliance sheet only: an "N/A" bus number prints as blank (stored data is untouched).
+  function cleanBus(v){ v=String(v||"").trim(); return /^n\/?a$/i.test(v)?"":v; }
   function regimeCode(r){ return r==="EU"?"EU":(r==="OW"?"OW":"DOM"); }
   // Most recent Saturday–Friday week that has fully finished.
   function defaultComplianceWeek(){ return addDays(weekStart(new Date()),-7); }
@@ -860,7 +862,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     return {
       duty:uniq(list.map(function(d){return String(d.duty||"").trim();})).join(" / "),
       reg:uniq(list.map(function(d){return regimeCode(d.regime);})).join(" / "),
-      fleet:uniq([].concat.apply([],list.map(function(d){return [d.bus1,d.bus2];}))).join(" / "),
+      fleet:uniq([].concat.apply([],list.map(function(d){return [d.bus1,d.bus2];})).map(cleanBus)).join(" / "),
       depot:uniq(list.map(function(d){return d.depot;})).join(" / "),
       on:first===Infinity?"":clockOf(first),
       off:last===-Infinity?"":clockOf(last),
