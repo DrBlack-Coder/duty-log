@@ -78,6 +78,10 @@ body{
 .blind-split div{border-left:2px solid currentColor;padding-left:9px}
 .blind-split .k{display:block;font-size:9.5px;letter-spacing:.16em;opacity:.62}
 .band-week{color:var(--amber)}
+.actual-pay{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line,rgba(128,128,128,.3))}
+.actual-pay label{font-size:13px}
+.actual-pay input{width:110px}
+.pay-diff{font-weight:600}
 .band-end{color:var(--ice)}
 .blind-nav{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
 .nav-btn{
@@ -361,6 +365,11 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
           <span>Paid <b id="paidTotal">0.00</b> hrs</span>
           <span>Est. pay <b id="payTotal">£0.00</b></span>
         </div>
+        <div class="actual-pay">
+          <label for="actualPay">Actual pay (payslip) £</label>
+          <input id="actualPay" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+          <span id="payDiff" class="pay-diff"></span>
+        </div>
       </div>
 
       <div class="card settings" style="padding:14px">
@@ -471,7 +480,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
 (function(){
   "use strict";
   var DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-  var state={settings:{rateWd:0,rateWe:0,otMult:1,minHours:5.5,rlMinHours:7.6,defDepot:""},duties:[]};
+  var state={settings:{rateWd:0,rateWe:0,otMult:1,minHours:5.5,rlMinHours:7.6,defDepot:""},duties:[],actualPay:{}};
   var editingId=null, anchor=null;
   var $=function(id){return document.getElementById(id);};
 
@@ -548,7 +557,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
       if(r.status===401){ window.location.href="/login"; return; }
       if(!r.ok) throw new Error("bad status "+r.status);
       var p=await r.json();
-      if(p){ state.settings=Object.assign(state.settings,p.settings||{}); state.duties=p.duties||[]; }
+      if(p){ state.settings=Object.assign(state.settings,p.settings||{}); state.duties=p.duties||[]; state.actualPay=p.actualPay||{}; }
       $("storeNote").textContent="Duties are saved automatically to your account.";
     }catch(e){
       $("storeNote").innerHTML='<span style="color:var(--warn)">Couldn\u2019t reach the server \u2014 changes won\u2019t be saved until it\u2019s back. <a href="#" id="retryLoad">Retry</a></span>';
@@ -637,6 +646,26 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     return "";
   }
 
+  /* ---------- actual pay (per Sat–Fri week) ---------- */
+  var estPay=0;
+  function renderActualPay(){
+    var key=iso(weekStart(anchor)), inp=$("actualPay"), v=state.actualPay&&state.actualPay[key];
+    if(document.activeElement!==inp) inp.value=(v==null?"":v);
+    var out=$("payDiff");
+    if(v==null){ out.textContent=""; return; }
+    var diff=Math.round((v-estPay)*100)/100;
+    if(diff===0){ out.textContent="Matches estimate"; out.style.color=""; }
+    else if(diff>0){ out.textContent="+"+money(diff)+" over estimate"; out.style.color="var(--ok,#2e7d32)"; }
+    else { out.textContent="−"+money(-diff)+" short of estimate"; out.style.color="var(--warn,#c62828)"; }
+  }
+  $("actualPay").addEventListener("input",async function(){
+    var key=iso(weekStart(anchor)), raw=this.value.trim(), n=parseFloat(raw);
+    if(!state.actualPay) state.actualPay={};
+    if(raw===""||isNaN(n)||n<0) delete state.actualPay[key]; else state.actualPay[key]=Math.round(n*100)/100;
+    renderActualPay();
+    await save();
+  });
+
   /* ---------- week view ---------- */
   function render(){
     var ws=weekStart(anchor), we=addDays(ws,6);
@@ -696,6 +725,8 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("topWrap").hidden=topup===0;
     $("paidTotal").textContent=fmtHrs(paid);
     $("payTotal").textContent=money(money_);
+    estPay=money_;
+    renderActualPay();
     renderHorizon();
     renderDashboard();
   }
