@@ -1231,6 +1231,9 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     var ed=e.target.getAttribute("data-edit"), dl=e.target.getAttribute("data-del");
     if(ed) edit(ed);
     if(dl){
+      var del=state.duties.find(function(x){return x.id===dl;});
+      var label=del?(del.duty||"this duty")+(del.date?" on "+del.date.split("-").reverse().join("/"):""):"this duty";
+      if(!confirm("Delete "+label+"?\n\nThis can't be undone.")) return;
       state.duties=state.duties.filter(function(x){return x.id!==dl;});
       if(editingId===dl) clearForm(true);
       await save(); render();
