@@ -292,6 +292,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
         <div class="band-week"><span class="k">Mon–Fri</span><span id="wdHours">0.00</span></div>
         <div class="band-end"><span class="k">Sat–Sun</span><span id="weHours">0.00</span></div>
         <div class="band-week"><span class="k">Est. pay</span><span id="totalPay">£0.00</span></div>
+        <div class="band-week"><span class="k">Tax to withhold</span><span id="totalTax">£0.00</span></div>
       </div>
     </div>
     <div class="blind-nav">
@@ -364,6 +365,7 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
           <span id="topWrap">Top-up <b id="topTotal">0.00</b></span>
           <span>Paid <b id="paidTotal">0.00</b> hrs</span>
           <span>Est. pay <b id="payTotal">£0.00</b></span>
+          <span>Tax to withhold <b id="payTax">£0.00</b></span>
         </div>
         <div class="actual-pay">
           <label for="actualPay">Actual pay (payslip) £</label>
@@ -725,6 +727,9 @@ input:focus,textarea:focus,select:focus{outline:2px solid var(--ink);outline-off
     $("topWrap").hidden=topup===0;
     $("paidTotal").textContent=fmtHrs(paid);
     $("payTotal").textContent=money(money_);
+    var taxDue=Math.round(money_*25)/100;
+    $("totalTax").textContent=money(taxDue);
+    $("payTax").textContent=money(taxDue);
     estPay=money_;
     renderActualPay();
     renderHorizon();
